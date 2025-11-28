@@ -1,9 +1,9 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import userRoutes from "./routes/userRoutes.js";
-import hebergementRoutes from "./routes/hebergementRoutes.js";
-import reservationRoutes from "./routes/reservationRoutes.js";
+import userRoutes from "./routes/UserRoutes.js";
+import hebergementRoutes from "./routes/HebergementRoutes.js";
+import reservationRoutes from "./routes/ReservationRoutes.js";
 import paymentRoutes from "./routes/PaymentRoutes.js";
 import authRoutes from "./routes/AuthRoutes.js";
 
@@ -17,8 +17,8 @@ dotenv.config();
 const app = express();
 
 // Middlewares
-app.use(cors());
-app.use(express.json());
+app.use(cors()); // Activer CORS
+app.use(express.json()); // Parser le JSON
 
 // Routes
 app.get("/", (req, res) => res.send("API Camping Premium - ES Modules"));
