@@ -4,17 +4,11 @@ import db from "../config/db.js";
 
 /**
  * Inscription utilisateur
- * Étapes :
- * 1. Vérifier si l'email existe déjà
- * 2. Hasher le mot de passe
- * 3. Insérer l'utilisateur en base
- * 4. Générer un token JWT automatique après inscription
  */
 export const register = async (req, res) => {
   const { name, email, password, role = "user" } = req.body;
 
   try {
-    // 1. Vérifier si un utilisateur existe déjà avec cet email
     const [[existingUser]] = await db.query(
       "SELECT id FROM users WHERE email = ?",
       [email]
@@ -26,30 +20,21 @@ export const register = async (req, res) => {
       });
     }
 
-    // 2. Hasher le mot de passe avant insertion
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3. Insérer l’utilisateur dans la base de données
     const [result] = await db.query(
       "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
       [name, email, hashedPassword, role]
     );
 
-    // Récupération de l'ID nouvellement créé
     const userId = result.insertId;
 
-    // 4. Génération d’un token automatique après inscription
     const token = jwt.sign(
-      {
-        id: userId,
-        email,
-        role,
-      },
+      { id: userId, email, role },
       process.env.JWT_SECRET,
       { expiresIn: "24h" }
     );
 
-    // 4. Réponse finale
     res.status(201).json({
       message: "Utilisateur créé avec succès",
       user: {
@@ -65,3 +50,47 @@ export const register = async (req, res) => {
     res.status(500).json({ error: "Erreur serveur" });
   }
 };
+
+export const login = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const [[user]] = await db.query(
+      "SELECT id, name, email, password, role FROM users WHERE email = ?",
+      [email]
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "Utilisateur non trouvé" });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: "Mot de passe incorrect" });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
+    res.json({
+      message: "Connexion réussie",
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error("Erreur login :", error);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+};
+

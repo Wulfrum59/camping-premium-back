@@ -1,5 +1,7 @@
 import mysql from "mysql2/promise";
 import dotenv from "dotenv";
+
+
 dotenv.config();  // Charger les variables d'environnement
 
 
@@ -11,3 +13,5 @@ export const pool = mysql.createPool({
   database: process.env.DB_NAME,
   connectionLimit: 10,
 });
+
+export default pool;

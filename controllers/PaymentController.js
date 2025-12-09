@@ -1,5 +1,5 @@
-import { PaymentModel } from "../models/paymentModel.js";
-import { ReservationModel } from "../models/reservationModel.js";
+import { PaymentModel } from "../models/Payment.js";
+import { ReservationModel } from "../models/Reservation.js";
 
 export const PaymentController = {
   // Créer un paiement (ex : après tentative de paiement côté client)
