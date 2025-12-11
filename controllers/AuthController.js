@@ -4,64 +4,109 @@ import db from "../config/db.js";
 
 /**
  * Inscription utilisateur
- * Étapes :
- * 1. Vérifier si l'email existe déjà
- * 2. Hasher le mot de passe
- * 3. Insérer l'utilisateur en base
- * 4. Générer un token JWT automatique après inscription
  */
 export const register = async (req, res) => {
-  const { name, email, password, role = "user" } = req.body;
+  const {
+    first_name,
+    last_name,
+    email,
+    password,
+    address,
+    phone,
+    birth_date,
+    role = "user"
+  } = req.body;
 
   try {
-    // 1. Vérifier si un utilisateur existe déjà avec cet email
+    // Vérifier si l'utilisateur existe déjà
     const [[existingUser]] = await db.query(
-      "SELECT id FROM users WHERE email = ?",
+      "SELECT user_id FROM users WHERE email = ?",
       [email]
     );
 
     if (existingUser) {
-      return res.status(400).json({
-        error: "Un utilisateur avec cet email existe déjà",
-      });
+      return res.status(400).json({ error: "Un utilisateur avec cet email existe déjà" });
     }
 
-    // 2. Hasher le mot de passe avant insertion
+    // Hash du mot de passe
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3. Insérer l’utilisateur dans la base de données
+    // Insertion dans la base
     const [result] = await db.query(
-      "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
-      [name, email, hashedPassword, role]
+      `INSERT INTO users 
+      (first_name, last_name, email, password, address, phone, birth_date) 
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [first_name, last_name, email, hashedPassword, address, phone, birth_date]
     );
 
-    // Récupération de l'ID nouvellement créé
     const userId = result.insertId;
 
-    // 4. Génération d’un token automatique après inscription
+    // Génération du token JWT
+    const token = jwt.sign(
+      { id: userId, email, role },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
+    res.status(201).json({
+      message: "Utilisateur créé avec succès",
+      user: { user_id: userId, first_name, last_name, email, role, address, phone, birth_date },
+      token,
+    });
+  } catch (error) {
+    console.error("Erreur register :", error);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+};
+
+/**
+ * Connexion utilisateur
+ */
+export const login = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const [[user]] = await db.query(
+      "SELECT user_id, first_name, last_name, email, password, role_id AS role, address, phone, birth_date FROM users WHERE email = ?",
+      [email]
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "Utilisateur non trouvé" });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: "Mot de passe incorrect" });
+    }
+
+    // Génération du token JWT
     const token = jwt.sign(
       {
-        id: userId,
-        email,
-        role,
+        id: user.user_id,
+        email: user.email,
+        role: user.role,
       },
       process.env.JWT_SECRET,
       { expiresIn: "24h" }
     );
 
-    // 4. Réponse finale
-    res.status(201).json({
-      message: "Utilisateur créé avec succès",
+    res.json({
+      message: "Connexion réussie",
       user: {
-        id: userId,
-        name,
-        email,
-        role,
+        user_id: user.user_id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        role: user.role,
+        address: user.address,
+        phone: user.phone,
+        birth_date: user.birth_date,
       },
       token,
     });
   } catch (error) {
-    console.error("Erreur register :", error);
+    console.error("Erreur login :", error);
     res.status(500).json({ error: "Erreur serveur" });
   }
 };

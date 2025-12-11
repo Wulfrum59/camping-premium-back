@@ -1,4 +1,4 @@
-import { HebergementModel } from "../models/hebergementModel.js";
+import { HebergementModel } from "../models/Hebergement.js";
 
 
 // Contrôleur Hébergement

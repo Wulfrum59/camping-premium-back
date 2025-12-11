@@ -1,42 +1,37 @@
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import { UserModel } from "../models/userModel.js";
+import db from "../config/db.js";
 
-// Contrôleur utilisateur
-export const UserController = {
+// Middleware auth doit avoir mis req.user.id
+export const getCurrentUser = async (req, res) => {
+  try {
+    const userId = req.user.id;
 
-    // Inscription utilisateur
-  register: async (req, res) => {
-    const { email, password, name } = req.body;
-
-    const exists = await UserModel.findByEmail(email);
-    if (exists) return res.status(400).json({ error: "Email déjà utilisé" });
-
-    const hash = await bcrypt.hash(password, 10);
-    const id = await UserModel.create(email, hash, name);
-
-    res.json({ message: "Utilisateur créé", id });
-  },
-
-    // Connexion utilisateur
-
-  login: async (req, res) => {
-    const { email, password } = req.body;
-
-    const user = await UserModel.findByEmail(email);
-    if (!user) return res.status(404).json({ error: "Email introuvable" });
-
-    const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(401).json({ error: "Mot de passe incorrect" });
-
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+    const [[user]] = await db.query(
+      "SELECT user_id, first_name, last_name, email, address, phone, birth_date FROM users WHERE user_id = ?",
+      [userId]
     );
 
-    res.json({ token });
+    if (!user) {
+      return res.status(404).json({ error: "Utilisateur non trouvé" });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erreur serveur" });
   }
 };
 
-export default UserController;
+export const updateUser = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { first_name, last_name, address, phone, birth_date } = req.body;
+    await db.query(
+      "UPDATE users SET first_name = ?, last_name = ?, address = ?, phone = ?, birth_date = ? WHERE user_id = ?",
+      [first_name, last_name, address, phone, birth_date, userId]
+    );
+    res.json({ message: "Informations utilisateur mises à jour avec succès" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+};

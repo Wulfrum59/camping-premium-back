@@ -1,10 +1,10 @@
-import { Router } from "express";
-import { UserController } from "../controllers/UserController.js";
+import express from "express";
+import { getCurrentUser, updateUser } from "../controllers/UserController.js";
+import { auth } from "../middleware/auth.js";
 
-const router = Router();
+const router = express.Router();
 
-// Routes utilisateur
-router.post("/register", UserController.register);
-router.post("/login", UserController.login);
+router.get("/me", auth, getCurrentUser);
+router.put("/me", auth, updateUser); // pour mettre à jour les infos
 
 export default router;
