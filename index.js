@@ -22,7 +22,7 @@ app.use(express.json());
 
 // Routes
 app.get("/", (req, res) => res.send("API Camping Premium - ES Modules"));
-
+app.use("/api/reservations", reservationRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/hebergements", hebergementRoutes);

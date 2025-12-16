@@ -1,4 +1,5 @@
-import { ReservationModel } from "../models/Reservation.js";
+import ReservationModel from "../models/Reservation.model.js";
+
 
 
 // Contrôleur Réservation
